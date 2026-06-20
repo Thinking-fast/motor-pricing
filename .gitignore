@@ -1,0 +1,22 @@
+# Data: don't commit raw data or the built database
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+*.egg-info/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

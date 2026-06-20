@@ -1,0 +1,44 @@
+# Central configuration for the pricing platform.
+# Everything that might change (paths, loadings, model settings) lives here -
+# NOT hard-coded inside scripts. Reading config from one file is what
+# "configuration management" means in practice, and it's a habit pricing
+# teams expect.
+
+seed: 42
+
+paths:
+  raw_data: data/raw
+  processed_data: data/processed
+  figures: data/processed/figures
+  reports: data/processed/reports
+
+database:
+  # SQLite needs no server and is perfect for a portfolio repo.
+  # To use PostgreSQL instead, set url to e.g.
+  #   postgresql+psycopg2://user:password@localhost:5432/insurance
+  url: "sqlite:///data/processed/portfolio.db"
+
+pricing:
+  # IMPORTANT: freMTPL2 has NO premium column, so we BUILD a technical premium
+  # from the modelled pure premium plus loadings. These values are illustrative.
+  # technical_premium = pure_premium_rate * exposure * (1 + expense + profit)
+  expense_loading: 0.25     # 25% loading for expenses
+  profit_loading: 0.05      # 5% profit / capital margin
+
+experience_study:
+  driv_age_bands: [18, 25, 35, 45, 55, 65, 75, 100]
+  bonus_malus_cap: 150      # cap extreme BonusMalus values during cleaning
+
+model:
+  test_size: 0.2
+  glm:
+    family: poisson         # frequency model; uses a log(exposure) offset
+  xgboost:
+    objective: "count:poisson"
+    n_estimators: 300
+    max_depth: 4
+    learning_rate: 0.05
+
+reporting:
+  use_llm: false            # true -> call OpenAI (needs OPENAI_API_KEY); false -> deterministic template
+  llm_model: "gpt-4o-mini"

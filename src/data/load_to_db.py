@@ -4,6 +4,7 @@ Builds three tables - policies, claims, regions - using SQLAlchemy, so the same
 code targets SQLite (default) or PostgreSQL just by changing the connection URL
 in config.yaml.
 """
+
 from __future__ import annotations
 
 import logging
@@ -30,13 +31,18 @@ REGION_NAMES = {
 
 def _build_regions(freq: pd.DataFrame) -> pd.DataFrame:
     regions = freq[["Region"]].drop_duplicates().rename(columns={"Region": "region"})
-    regions["region_name"] = regions["region"].map(REGION_NAMES).fillna(regions["region"])
-    regions["macro_area"] = "France"  # TODO: map regions to north/south/etc. macro areas
+    regions["region_name"] = (
+        regions["region"].map(REGION_NAMES).fillna(regions["region"])
+    )
+    regions["macro_area"] = (
+        "France"  # TODO: map regions to north/south/etc. macro areas
+    )
     return regions
 
 
-def load_to_db(freq: pd.DataFrame, sev: pd.DataFrame, db_url: str,
-               schema_sql: str | Path) -> None:
+def load_to_db(
+    freq: pd.DataFrame, sev: pd.DataFrame, db_url: str, schema_sql: str | Path
+) -> None:
     """Create the schema and load policies, claims and regions."""
     engine = create_engine(db_url)
 
@@ -51,24 +57,50 @@ def load_to_db(freq: pd.DataFrame, sev: pd.DataFrame, db_url: str,
     _build_regions(freq).to_sql("regions", engine, if_exists="append", index=False)
 
     # 3. policies fact table (rename freMTPL2 columns to the snake_case schema).
-    policies = freq.rename(columns={
-        "IDpol": "policy_id", "Exposure": "exposure", "ClaimNb": "claim_nb",
-        "Area": "area", "VehPower": "veh_power", "VehAge": "veh_age",
-        "DrivAge": "driv_age", "BonusMalus": "bonus_malus", "VehBrand": "veh_brand",
-        "VehGas": "veh_gas", "Density": "density", "Region": "region",
-    })
-    keep = ["policy_id", "exposure", "claim_nb", "area", "veh_power", "veh_age",
-            "driv_age", "bonus_malus", "veh_brand", "veh_gas", "density", "region"]
+    policies = freq.rename(
+        columns={
+            "IDpol": "policy_id",
+            "Exposure": "exposure",
+            "ClaimNb": "claim_nb",
+            "Area": "area",
+            "VehPower": "veh_power",
+            "VehAge": "veh_age",
+            "DrivAge": "driv_age",
+            "BonusMalus": "bonus_malus",
+            "VehBrand": "veh_brand",
+            "VehGas": "veh_gas",
+            "Density": "density",
+            "Region": "region",
+        }
+    )
+    keep = [
+        "policy_id",
+        "exposure",
+        "claim_nb",
+        "area",
+        "veh_power",
+        "veh_age",
+        "driv_age",
+        "bonus_malus",
+        "veh_brand",
+        "veh_gas",
+        "density",
+        "region",
+    ]
     policies[keep].to_sql("policies", engine, if_exists="append", index=False)
 
     # 4. claims table with a surrogate claim_id.
-    claims = sev.rename(columns={"IDpol": "policy_id", "ClaimAmount": "claim_amount"}).copy()
+    claims = sev.rename(
+        columns={"IDpol": "policy_id", "ClaimAmount": "claim_amount"}
+    ).copy()
     claims.insert(0, "claim_id", range(1, len(claims) + 1))
     claims[["claim_id", "policy_id", "claim_amount"]].to_sql(
-        "claims", engine, if_exists="append", index=False)
+        "claims", engine, if_exists="append", index=False
+    )
 
-    logger.info("Loaded %d policies and %d claims into %s",
-                len(policies), len(claims), db_url)
+    logger.info(
+        "Loaded %d policies and %d claims into %s", len(policies), len(claims), db_url
+    )
 
 
 if __name__ == "__main__":
@@ -78,10 +110,10 @@ if __name__ == "__main__":
     freq_path, sev_path = download_fremtpl2(cfg["paths"]["raw_data"])
     freq = pd.read_csv(freq_path)
     sev = pd.read_csv(sev_path)
-    
+
     load_to_db(
-        freq = freq, 
-        sev = sev,
-        db_url = cfg["database"]["url"],
-        schema_sql = Path(cfg["_project_root"]) / "sql" / "schema.sql",
+        freq=freq,
+        sev=sev,
+        db_url=cfg["database"]["url"],
+        schema_sql=Path(cfg["_project_root"]) / "sql" / "schema.sql",
     )

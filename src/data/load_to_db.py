@@ -12,6 +12,9 @@ from pathlib import Path
 import pandas as pd
 from sqlalchemy import create_engine, text
 
+from src.config import load_config
+from src.data.download import download_fremtpl2
+
 logger = logging.getLogger(__name__)
 
 # A few human-readable region labels as examples. Extend this map yourself.
@@ -66,3 +69,19 @@ def load_to_db(freq: pd.DataFrame, sev: pd.DataFrame, db_url: str,
 
     logger.info("Loaded %d policies and %d claims into %s",
                 len(policies), len(claims), db_url)
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+
+    cfg = load_config()
+    freq_path, sev_path = download_fremtpl2(cfg["paths"]["raw_data"])
+    freq = pd.read_csv(freq_path)
+    sev = pd.read_csv(sev_path)
+    
+    load_to_db(
+        freq = freq, 
+        sev = sev,
+        db_url = cfg["database"]["url"],
+        schema_sql = Path(cfg["_project_root"]) / "sql" / "schema.sql",
+    )

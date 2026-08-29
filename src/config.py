@@ -3,6 +3,7 @@
 Import `load_config()` anywhere you need settings. Keeping all configuration in
 one place (and out of the code) is a basic but important engineering habit.
 """
+
 from __future__ import annotations
 
 import os

@@ -6,6 +6,7 @@
 Fetched from OpenML and cached as CSV under data/raw/. Internet is needed on the
 first run only; afterwards the cached CSVs are reused.
 """
+
 from __future__ import annotations
 
 import logging

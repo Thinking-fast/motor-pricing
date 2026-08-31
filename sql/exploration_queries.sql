@@ -67,10 +67,59 @@ FROM (
 
 -- ----- YOUR TURN ------------------------------------------------------------
 -- 6.  TODO: Pure premium (SUM(claim_amount) / SUM(exposure)) by vehicle gas type.
--- 7.  TODO: Top 5 policies by total claim amount.  (JOIN + ORDER BY + LIMIT)
+SELECT
+    p.veh_gas     AS vehicle_gas_type,
+    ROUND(SUM(p.exposure),1)    AS exposure,
+    ROUND(SUM(c.total_claim_amount), 0) AS total_claim_cost,
+    ROUND(SUM(c.total_claim_amount)/SUM(p.exposure), 2)  AS pure_premium
+FROM policies p
+LEFT JOIN (
+    SELECT policy_id,
+        SUM(claim_amount) AS total_claim_amount
+    FROM claims
+    GROUP BY policy_id
+) c ON c.policy_id = p.policy_id
+GROUP BY p.veh_gas;
+    
+
+-- 7.  Top 5 policies by total claim amount.  (JOIN + ORDER BY + LIMIT)
+SELECT 
+    p.policy_id     AS policy_id,
+    p.driv_age      AS driver_age,
+    p.veh_brand     AS vehicle_brand,
+    ROUND(c.total_claim_amount, 0) AS total_claim_amount
+FROM policies p 
+JOIN(
+    SELECT policy_id,
+        SUM(claim_amount) AS total_claim_amount
+    FROM claims
+    GROUP BY policy_id
+) c ON c.policy_id = p.policy_id
+ORDER BY c.total_claim_amount DESC
+LIMIT 5;
+
+
 -- 8.  TODO: Per region, running cumulative exposure ordered by driv_age.
 --           (WINDOW: SUM(exposure) OVER (PARTITION BY region ORDER BY driv_age))
+
+SELECT
+    region,
+    driv_age,
+    ROUND(exposure, 1)      AS exposure,
+    ROUND(SUM(exposure) OVER(PARTITION BY region ORDER BY driv_age),1)      AS total_exposure
+FROM(
+    SELECT region,
+        driv_age,
+        SUM(exposure) AS exposure
+    FROM policies
+    GROUP BY region, driv_age
+) AS e
+ORDER BY region, driv_age;
+
+
 -- 9.  TODO: Loss ratio by age band. Needs the technical_premium you add in the
 --           pricing stage - revisit after Stage 3 of the blueprint.
+
+
 -- 10. TODO: Share of total portfolio claims contributed by each region.
 --           (claim total per region divided by SUM(...) OVER ())

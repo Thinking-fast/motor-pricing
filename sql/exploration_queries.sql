@@ -123,3 +123,10 @@ ORDER BY region, driv_age;
 
 -- 10. TODO: Share of total portfolio claims contributed by each region.
 --           (claim total per region divided by SUM(...) OVER ())
+SELECT
+    region,
+    SUM(claim_nb) AS claims,
+    ROUND(100.0 * SUM(claim_nb) / (SELECT SUM(claim_nb) FROM policies), 1) AS pct_of_portfolio
+FROM policies
+GROUP BY region
+ORDER BY pct_of_portfolio DESC;

@@ -1,12 +1,12 @@
-'''
+"""
 Extract the analysis base table from the SQL database.
 One row per policy, exposure, claim amount, total claim amount, risk features
-'''
+"""
 
 from __future__ import annotations
 
 import logging
-import pandas as pd 
+import pandas as pd
 
 from sqlalchemy import create_engine
 from src.config import load_config
@@ -40,6 +40,7 @@ BASE_TABLE_QUERY = """
     ) c ON c.policy_id = p.policy_id
 """
 
+
 def extract_base_table(db_url: str | None = None) -> pd.DataFrame:
     """Return one row per policy, with claim totals joined on."""
     if db_url == None:
@@ -50,9 +51,9 @@ def extract_base_table(db_url: str | None = None) -> pd.DataFrame:
     logger.info("Extracted %d policy rows with %d columns", len(df), df.shape[1])
     return df
 
-if __name__ == "__main__": 
+
+if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     base = extract_base_table()
     print(base.head())
     print(base.shape)
-

@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Replace NULL claim with 0
 BASE_TABLE_QUERY = """
-    SELECT 
+    SELECT
         p.policy_id,
         p.exposure,
         p.claim_nb,
@@ -35,7 +35,7 @@ BASE_TABLE_QUERY = """
         SELECT policy_id,
             SUM(claim_amount) AS total_claim_amount,
             COUNT(*)          AS n_claim_rows
-        FROM claims 
+        FROM claims
         GROUP BY policy_id
     ) c ON c.policy_id = p.policy_id
 """
@@ -43,7 +43,7 @@ BASE_TABLE_QUERY = """
 
 def extract_base_table(db_url: str | None = None) -> pd.DataFrame:
     """Return one row per policy, with claim totals joined on."""
-    if db_url == None:
+    if db_url is None:
         db_url = load_config()["database"]["url"]
 
     engine = create_engine(db_url)

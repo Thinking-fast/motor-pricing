@@ -20,6 +20,7 @@ def test_portfolio_pure_premium_rate_uses_totals():
 
     assert result == pytest.approx(100.0)
 
+
 def test_add_technical_premium_applies_exposure_and_loadings():
     df = pd.DataFrame(
         {

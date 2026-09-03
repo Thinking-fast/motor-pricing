@@ -10,8 +10,8 @@ import logging
 
 import pandas as pd
 
-
 logger = logging.getLogger(__name__)
+
 
 def portfolio_pure_premium_rate(df: pd.DataFrame) -> float:
     """Return total claim cost per unit of portfolio exposure."""
@@ -31,6 +31,7 @@ def portfolio_pure_premium_rate(df: pd.DataFrame) -> float:
 
     return float(rate)
 
+
 def add_technical_premium(
     df: pd.DataFrame,
     pure_premium_rate: float,
@@ -49,8 +50,8 @@ def add_technical_premium(
 
     loading_factor = 1 + expense_loading + profit_loading
 
-    df["technical_premium_rate"] = (pure_premium_rate * loading_factor)
-    df["technical_premium"] = (df["technical_premium_rate"] * df["exposure"])
+    df["technical_premium_rate"] = pure_premium_rate * loading_factor
+    df["technical_premium"] = df["technical_premium_rate"] * df["exposure"]
 
     logger.info(
         "Constructed technical premium: rate=%.2f, total=%.2f",
@@ -78,9 +79,7 @@ def profitability_study(
     missing = required_columns - set(df.columns)
 
     if missing:
-        raise ValueError(
-            f"Missing profitability columns: {sorted(missing)}"
-        )
+        raise ValueError(f"Missing profitability columns: {sorted(missing)}")
 
     grouped = df.groupby(by, observed=True).agg(
         policies=("policy_id", "count"),
@@ -89,18 +88,16 @@ def profitability_study(
         technical_premium=("technical_premium", "sum"),
     )
 
-    grouped["loss_ratio"] = (grouped["actual_claims"] / grouped["technical_premium"])
+    grouped["loss_ratio"] = grouped["actual_claims"] / grouped["technical_premium"]
 
-    grouped["underwriting_result"] = (grouped["technical_premium"] - grouped["actual_claims"])
-
-    grouped["above_break_even"] = (grouped["loss_ratio"] > 1)
-
-    grouped["break_even_excess"] = (grouped["loss_ratio"] - 1)
-
-    grouped["credible"] = (grouped["exposure"] >= min_exposure)
-
-    return (
-        grouped
-        .sort_values("loss_ratio", ascending=False)
-        .reset_index()
+    grouped["underwriting_result"] = (
+        grouped["technical_premium"] - grouped["actual_claims"]
     )
+
+    grouped["above_break_even"] = grouped["loss_ratio"] > 1
+
+    grouped["break_even_excess"] = grouped["loss_ratio"] - 1
+
+    grouped["credible"] = grouped["exposure"] >= min_exposure
+
+    return grouped.sort_values("loss_ratio", ascending=False).reset_index()

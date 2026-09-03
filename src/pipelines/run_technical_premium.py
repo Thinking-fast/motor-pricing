@@ -17,7 +17,6 @@ from src.pricing.technical_premium import (
     profitability_study,
 )
 
-
 logger = logging.getLogger(__name__)
 
 FACTORS = [
@@ -27,6 +26,7 @@ FACTORS = [
     "veh_gas",
     "area",
 ]
+
 
 def run_technical_premium() -> dict[str, pd.DataFrame]:
     """Build technical premiums and save profitability tables."""
@@ -48,9 +48,7 @@ def run_technical_premium() -> dict[str, pd.DataFrame]:
         profit_loading=profit_loading,
     )
 
-    output_directory = Path(
-        config["paths"]["processed_data"]
-    )
+    output_directory = Path(config["paths"]["processed_data"])
 
     output_directory.mkdir(
         parents=True,
@@ -65,10 +63,7 @@ def run_technical_premium() -> dict[str, pd.DataFrame]:
             by=factor,
         )
 
-        output_path = (
-            output_directory
-            / f"profitability_{factor}.csv"
-        )
+        output_path = output_directory / f"profitability_{factor}.csv"
 
         table.to_csv(
             output_path,
@@ -84,6 +79,7 @@ def run_technical_premium() -> dict[str, pd.DataFrame]:
         )
 
     return tables
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)

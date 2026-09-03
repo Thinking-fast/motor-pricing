@@ -6,6 +6,7 @@ changed. The reasoning behind each decision is in docs/data_quality.md.
 from __future__ import annotations
 import logging
 import pandas as pd
+from src.config import load_config
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,9 @@ def clean_base_table(df: pd.DataFrame) -> pd.DataFrame:
 
     df = df.copy()
     df = cap_exposure(df)
-    df = cap_bonus_malus(df)
+    cap = load_config()["experience_study"]["bonus_malus_cap"]
+
+    df = cap_bonus_malus(df, cap=cap)
     df = drop_zero_exposure(df)
     df = flag_claim_mismatch(df)
 

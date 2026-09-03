@@ -75,5 +75,3 @@ def experience_study(
     )
 
     return grouped.reset_index()
-
-

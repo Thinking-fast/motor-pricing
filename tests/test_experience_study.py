@@ -25,6 +25,7 @@ def test_add_age_band_uses_left_inclusive_intervals():
         "75-99",
     ]
 
+
 def test_experience_study_uses_grouped_totals():
     df = pd.DataFrame(
         {
@@ -77,7 +78,6 @@ def test_experience_study_rejects_unknown_factor():
 
     with pytest.raises(ValueError, match="Unknown grouping column"):
         experience_study(df, by="wrong_name")
-
 
 
 def test_pure_premium_equals_frequency_times_severity():

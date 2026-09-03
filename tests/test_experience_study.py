@@ -4,7 +4,12 @@ import numpy as np
 
 import pytest
 
-from src.analysis.experience_study import add_age_band, experience_study
+from src.analysis.experience_study import (
+    add_age_band,
+    cap_large_claims,
+    experience_study,
+    large_loss_loading,
+)
 
 
 def test_add_age_band_uses_left_inclusive_intervals():
@@ -22,7 +27,7 @@ def test_add_age_band_uses_left_inclusive_intervals():
         "25-34",
         "25-34",
         "35-44",
-        "75-99",
+        "75-100",
     ]
 
 
@@ -99,3 +104,51 @@ def test_pure_premium_equals_frequency_times_severity():
         result["frequency"] * result["severity"],
         equal_nan=True,
     )
+
+
+def test_cap_large_claims_caps_amounts_above_threshold():
+    df = pd.DataFrame(
+        {
+            "total_claim_amount": [
+                50_000.0,
+                100_000.0,
+                250_000.0,
+            ]
+        }
+    )
+
+    result, _ = cap_large_claims(df, cap=100_000)
+
+    assert result["total_claim_amount"].tolist() == [
+        50_000.0,
+        100_000.0,
+        100_000.0,
+    ]
+
+
+def test_cap_large_claims_returns_total_excess():
+    df = pd.DataFrame(
+        {
+            "total_claim_amount": [
+                50_000.0,
+                200_000.0,
+                350_000.0,
+            ]
+        }
+    )
+
+    _, total_excess = cap_large_claims(
+        df,
+        cap=100_000,
+    )
+
+    assert total_excess == 350_000.0
+
+
+def test_large_loss_loading_returns_excess_per_exposure():
+    result = large_loss_loading(
+        total_excess=200,
+        total_exposure=10,
+    )
+
+    assert result == 20

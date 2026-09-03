@@ -38,6 +38,17 @@ freMTPL2 via OpenML (freq id 41214, sev id 41215). Note: the dataset has **no
 premium column**, so a technical premium is constructed from the modelled pure
 premium plus expense and profit loadings (see BUILD_GUIDE Stage 4).
 
+## Premium limitation
+
+The freMTPL2 dataset does not contain premiums actually charged to
+policyholders. This project therefore constructs an illustrative technical
+premium using the portfolio empirical pure-premium rate plus configurable
+expense and profit loadings.
+
+The resulting loss ratios measure performance against this constructed
+benchmark. They should not be interpreted as the insurer's historical
+profitability.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

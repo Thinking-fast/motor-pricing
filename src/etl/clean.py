@@ -35,6 +35,25 @@ def cap_bonus_malus(df: pd.DataFrame, cap: int = 150) -> pd.DataFrame:
     return df
 
 
+def clean_vehicle_gas(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove surrounding whitespace and quotation marks from vehicle gas."""
+    df = df.copy()
+
+    original = df["veh_gas"]
+
+    cleaned = df["veh_gas"].str.strip().str.strip("'\"")
+
+    n_affected = (original != cleaned).sum()
+    df["veh_gas"] = cleaned
+
+    logger.info(
+        "clean_vehicle_gas: normalized %d rows",
+        n_affected,
+    )
+
+    return df
+
+
 def drop_zero_exposure(df: pd.DataFrame) -> pd.DataFrame:
     """Remove rows where exposure <= 0. They can't contribute to any rate
     (division by zero) and represent no risk."""
@@ -70,6 +89,7 @@ def clean_base_table(df: pd.DataFrame) -> pd.DataFrame:
     cap = load_config()["experience_study"]["bonus_malus_cap"]
 
     df = cap_bonus_malus(df, cap=cap)
+    df = clean_vehicle_gas(df)
     df = drop_zero_exposure(df)
     df = flag_claim_mismatch(df)
 

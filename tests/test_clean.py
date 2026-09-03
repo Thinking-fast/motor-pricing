@@ -6,6 +6,7 @@ from src.etl.clean import (
     clean_base_table,
     drop_zero_exposure,
     flag_claim_mismatch,
+    clean_vehicle_gas,
 )
 
 
@@ -63,6 +64,26 @@ def test_flag_claim_mismatch_marks_disagreements():
     ]
 
 
+def test_clean_vehicle_gas_removes_surrounding_quotes():
+    df = pd.DataFrame(
+        {
+            "veh_gas": [
+                "'Regular'",
+                "'Diesel'",
+                "Regular",
+            ]
+        }
+    )
+
+    result = clean_vehicle_gas(df)
+
+    assert result["veh_gas"].tolist() == [
+        "Regular",
+        "Diesel",
+        "Regular",
+    ]
+
+
 def test_clean_base_table_applies_all_cleaning_rules():
     df = pd.DataFrame(
         {
@@ -71,6 +92,12 @@ def test_clean_base_table_applies_all_cleaning_rules():
             "bonus_malus": [80, 230, 120, 170],
             "claim_nb": [0, 2, 1, 0],
             "n_claim_rows": [0, 1, 1, 0],
+            "veh_gas": [
+                "'Regular'",
+                "'Diesel'",
+                "'Regular'",
+                "'Diesel'",
+            ],
         }
     )
 

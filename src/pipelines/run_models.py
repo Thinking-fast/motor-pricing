@@ -23,6 +23,12 @@ from src.models.glm import (
     predict_frequency_glm,
 )
 
+from src.models.ml import (
+    fit_frequency_xgboost,
+    predict_frequency_xgboost,
+    xgboost_feature_importance,
+)
+
 logger = logging.getLogger(__name__)
 
 
@@ -78,10 +84,11 @@ def create_constant_baseline_predictions(
     return predictions, float(baseline_frequency)
 
 
-def run_frequency_glm():
-    """Train and compare the constant baseline and Poisson GLM."""
+def run_frequency_models():
+    """Train and compare baseline, GLM, and XGBoost models."""
     config = load_config()
 
+    # All models use the exact same split.
     train, test = prepare_modelling_data()
 
     # Constant baseline
@@ -93,10 +100,10 @@ def run_frequency_glm():
     baseline_metrics = evaluate_frequency_model(baseline_predictions)
 
     # Poisson GLM
-    model = fit_frequency_glm(train)
+    glm_model = fit_frequency_glm(train)
 
     glm_predictions = predict_frequency_glm(
-        model,
+        glm_model,
         test,
     )
 
@@ -107,48 +114,39 @@ def run_frequency_glm():
         n_deciles=10,
     )
 
-    # Display the comparison
-    logger.info(
-        "Baseline test Poisson deviance: %.6f",
-        baseline_metrics["poisson_deviance"],
+    # XGBoost
+    xgb_model = fit_frequency_xgboost(
+        train=train,
+        model_config=config["model"]["xgboost"],
+        random_state=config["seed"],
     )
 
-    logger.info(
-        "Baseline test actual/expected ratio: %.4f",
-        baseline_metrics["actual_to_expected"],
+    xgb_predictions = predict_frequency_xgboost(
+        xgb_model,
+        test,
     )
 
-    logger.info(
-        "Baseline normalized Gini: %.4f",
-        baseline_metrics["normalized_gini"],
+    xgb_metrics = evaluate_frequency_model(xgb_predictions)
+
+    xgb_calibration = calibration_by_decile(
+        xgb_predictions,
+        n_deciles=10,
     )
 
-    logger.info(
-        "GLM test Poisson deviance: %.6f",
-        glm_metrics["poisson_deviance"],
-    )
-
-    logger.info(
-        "GLM test actual/expected ratio: %.4f",
-        glm_metrics["actual_to_expected"],
-    )
-
-    logger.info(
-        "GLM normalized Gini: %.4f",
-        glm_metrics["normalized_gini"],
-    )
-
-    # GLM coefficient table
-    coefficients = pd.DataFrame(
+    # GLM coefficients and relativities
+    glm_coefficients = pd.DataFrame(
         {
-            "term": model.params.index,
-            "coefficient": model.params.values,
+            "term": glm_model.params.index,
+            "coefficient": glm_model.params.values,
         }
     )
 
-    coefficients["relativity"] = np.exp(coefficients["coefficient"])
+    glm_coefficients["relativity"] = np.exp(glm_coefficients["coefficient"])
 
-    # Model-comparison table
+    # XGBoost feature importance
+    xgb_importance = xgboost_feature_importance(xgb_model)
+
+    # Headline model comparison
     metrics_table = pd.DataFrame(
         [
             {
@@ -161,7 +159,33 @@ def run_frequency_glm():
                 "baseline_frequency": None,
                 **glm_metrics,
             },
+            {
+                "model": "xgboost",
+                "baseline_frequency": None,
+                **xgb_metrics,
+            },
         ]
+    )
+
+    logger.info(
+        "Baseline: deviance=%.6f, A/E=%.4f, Gini=%.4f",
+        baseline_metrics["poisson_deviance"],
+        baseline_metrics["actual_to_expected"],
+        baseline_metrics["normalized_gini"],
+    )
+
+    logger.info(
+        "GLM: deviance=%.6f, A/E=%.4f, Gini=%.4f",
+        glm_metrics["poisson_deviance"],
+        glm_metrics["actual_to_expected"],
+        glm_metrics["normalized_gini"],
+    )
+
+    logger.info(
+        "XGBoost: deviance=%.6f, A/E=%.4f, Gini=%.4f",
+        xgb_metrics["poisson_deviance"],
+        xgb_metrics["actual_to_expected"],
+        xgb_metrics["normalized_gini"],
     )
 
     output_directory = Path(config["paths"]["processed_data"])
@@ -171,14 +195,33 @@ def run_frequency_glm():
         exist_ok=True,
     )
 
-    coefficients_path = output_directory / "frequency_glm_coefficients.csv"
+    glm_coefficients_path = output_directory / "frequency_glm_coefficients.csv"
+
+    glm_calibration_path = output_directory / "frequency_glm_calibration.csv"
+
+    xgb_calibration_path = output_directory / "frequency_xgboost_calibration.csv"
+
+    xgb_importance_path = output_directory / "frequency_xgboost_importance.csv"
 
     metrics_path = output_directory / "frequency_model_metrics.csv"
 
-    calibration_path = output_directory / "frequency_glm_calibration.csv"
+    glm_coefficients.to_csv(
+        glm_coefficients_path,
+        index=False,
+    )
 
-    coefficients.to_csv(
-        coefficients_path,
+    glm_calibration.to_csv(
+        glm_calibration_path,
+        index=False,
+    )
+
+    xgb_calibration.to_csv(
+        xgb_calibration_path,
+        index=False,
+    )
+
+    xgb_importance.to_csv(
+        xgb_importance_path,
         index=False,
     )
 
@@ -187,39 +230,40 @@ def run_frequency_glm():
         index=False,
     )
 
-    glm_calibration.to_csv(
-        calibration_path,
-        index=False,
-    )
-
-    logger.info(
-        "Saved GLM coefficients to %s",
-        coefficients_path,
-    )
-
     logger.info(
         "Saved model comparison to %s",
         metrics_path,
     )
 
     logger.info(
-        "Saved GLM calibration table to %s",
-        calibration_path,
+        "Saved XGBoost feature importance to %s",
+        xgb_importance_path,
     )
 
+    print("\nModel comparison:")
     print(metrics_table)
-    print(model.summary())
-    print("\nGLM calibration by predicted-risk decile:")
+
+    print("\nGLM calibration:")
     print(glm_calibration)
 
-    return (
-        model,
-        glm_predictions,
-        metrics_table,
-        glm_calibration,
-    )
+    print("\nXGBoost calibration:")
+    print(xgb_calibration)
+
+    print("\nTop 20 XGBoost features:")
+    print(xgb_importance.head(20))
+
+    return {
+        "glm_model": glm_model,
+        "xgboost_model": xgb_model,
+        "glm_predictions": glm_predictions,
+        "xgboost_predictions": xgb_predictions,
+        "metrics": metrics_table,
+        "glm_calibration": glm_calibration,
+        "xgboost_calibration": xgb_calibration,
+        "xgboost_importance": xgb_importance,
+    }
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    run_frequency_glm()
+    run_frequency_models()

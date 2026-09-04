@@ -53,24 +53,18 @@ def evaluate_frequency_model(
     """Return headline frequency-model performance metrics."""
     deviance = poisson_deviance(
         actual_claims=predictions["claim_nb"],
-        predicted_frequency=predictions[
-            "predicted_frequency"
-        ],
+        predicted_frequency=predictions["predicted_frequency"],
         exposure=predictions["exposure"],
     )
 
     ae_ratio = actual_to_expected(
         actual_claims=predictions["claim_nb"],
-        predicted_claim_counts=predictions[
-            "predicted_claim_count"
-        ],
+        predicted_claim_counts=predictions["predicted_claim_count"],
     )
 
     gini = normalized_gini(
         actual_claims=predictions["claim_nb"],
-        predicted_frequency=predictions[
-            "predicted_frequency"
-        ],
+        predicted_frequency=predictions["predicted_frequency"],
         exposure=predictions["exposure"],
     )
 
@@ -157,14 +151,10 @@ def gini_coefficient(
 ) -> float:
     """Return the exposure-weighted Gini coefficient."""
     if len(actual_claims) != len(predicted_frequency):
-        raise ValueError(
-            "Actual claims and predictions must have equal length"
-        )
+        raise ValueError("Actual claims and predictions must have equal length")
 
     if len(actual_claims) != len(exposure):
-        raise ValueError(
-            "Actual claims and exposure must have equal length"
-        )
+        raise ValueError("Actual claims and exposure must have equal length")
 
     if (exposure <= 0).any():
         raise ValueError("Exposure must be strictly positive")
@@ -173,21 +163,15 @@ def gini_coefficient(
         raise ValueError("Actual claims cannot be negative")
 
     if (predicted_frequency <= 0).any():
-        raise ValueError(
-            "Predicted frequency must be strictly positive"
-        )
+        raise ValueError("Predicted frequency must be strictly positive")
 
     if actual_claims.sum() <= 0:
-        raise ValueError(
-            "At least one actual claim is required"
-        )
+        raise ValueError("At least one actual claim is required")
 
     data = pd.DataFrame(
         {
             "actual_claims": actual_claims.to_numpy(),
-            "predicted_frequency": (
-                predicted_frequency.to_numpy()
-            ),
+            "predicted_frequency": (predicted_frequency.to_numpy()),
             "exposure": exposure.to_numpy(),
         }
     )
@@ -207,24 +191,16 @@ def gini_coefficient(
         .sort_values("predicted_frequency")
     )
 
-    cumulative_exposure = (
-        ordered["exposure"].cumsum()
-        / ordered["exposure"].sum()
-    )
+    cumulative_exposure = ordered["exposure"].cumsum() / ordered["exposure"].sum()
 
     cumulative_claims = (
-        ordered["actual_claims"].cumsum()
-        / ordered["actual_claims"].sum()
+        ordered["actual_claims"].cumsum() / ordered["actual_claims"].sum()
     )
 
     # Include the origin of the Lorenz curve.
-    cumulative_exposure = np.concatenate(
-        ([0.0], cumulative_exposure.to_numpy())
-    )
+    cumulative_exposure = np.concatenate(([0.0], cumulative_exposure.to_numpy()))
 
-    cumulative_claims = np.concatenate(
-        ([0.0], cumulative_claims.to_numpy())
-    )
+    cumulative_claims = np.concatenate(([0.0], cumulative_claims.to_numpy()))
 
     area_under_curve = np.trapezoid(
         cumulative_claims,
@@ -255,8 +231,6 @@ def normalized_gini(
     )
 
     if np.isclose(perfect_gini, 0):
-        raise ValueError(
-            "Normalized Gini is undefined when perfect Gini is zero"
-        )
+        raise ValueError("Normalized Gini is undefined when perfect Gini is zero")
 
     return float(model_gini / perfect_gini)

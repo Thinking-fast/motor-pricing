@@ -33,6 +33,8 @@ experience_study:
 
 model:
   test_size: 0.2
+  cv_folds: 5
+  tweedie_power: 1.5
   glm:
     family: poisson         # frequency model; uses a log(exposure) offset
   xgboost:

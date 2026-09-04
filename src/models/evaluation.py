@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import numpy as np
 import pandas as pd
 from sklearn.metrics import mean_poisson_deviance
 
@@ -52,18 +53,31 @@ def evaluate_frequency_model(
     """Return headline frequency-model performance metrics."""
     deviance = poisson_deviance(
         actual_claims=predictions["claim_nb"],
-        predicted_frequency=predictions["predicted_frequency"],
+        predicted_frequency=predictions[
+            "predicted_frequency"
+        ],
         exposure=predictions["exposure"],
     )
 
     ae_ratio = actual_to_expected(
         actual_claims=predictions["claim_nb"],
-        predicted_claim_counts=predictions["predicted_claim_count"],
+        predicted_claim_counts=predictions[
+            "predicted_claim_count"
+        ],
+    )
+
+    gini = normalized_gini(
+        actual_claims=predictions["claim_nb"],
+        predicted_frequency=predictions[
+            "predicted_frequency"
+        ],
+        exposure=predictions["exposure"],
     )
 
     return {
         "poisson_deviance": deviance,
         "actual_to_expected": ae_ratio,
+        "normalized_gini": gini,
     }
 
 
@@ -134,3 +148,115 @@ def calibration_by_decile(
     )
 
     return calibration.reset_index()
+
+
+def gini_coefficient(
+    actual_claims: pd.Series,
+    predicted_frequency: pd.Series,
+    exposure: pd.Series,
+) -> float:
+    """Return the exposure-weighted Gini coefficient."""
+    if len(actual_claims) != len(predicted_frequency):
+        raise ValueError(
+            "Actual claims and predictions must have equal length"
+        )
+
+    if len(actual_claims) != len(exposure):
+        raise ValueError(
+            "Actual claims and exposure must have equal length"
+        )
+
+    if (exposure <= 0).any():
+        raise ValueError("Exposure must be strictly positive")
+
+    if (actual_claims < 0).any():
+        raise ValueError("Actual claims cannot be negative")
+
+    if (predicted_frequency <= 0).any():
+        raise ValueError(
+            "Predicted frequency must be strictly positive"
+        )
+
+    if actual_claims.sum() <= 0:
+        raise ValueError(
+            "At least one actual claim is required"
+        )
+
+    data = pd.DataFrame(
+        {
+            "actual_claims": actual_claims.to_numpy(),
+            "predicted_frequency": (
+                predicted_frequency.to_numpy()
+            ),
+            "exposure": exposure.to_numpy(),
+        }
+    )
+
+    # Combine policies with exactly equal predictions. This ensures that
+    # a constant prediction receives a Gini coefficient of zero.
+    ordered = (
+        data.groupby(
+            "predicted_frequency",
+            as_index=False,
+            sort=True,
+        )
+        .agg(
+            actual_claims=("actual_claims", "sum"),
+            exposure=("exposure", "sum"),
+        )
+        .sort_values("predicted_frequency")
+    )
+
+    cumulative_exposure = (
+        ordered["exposure"].cumsum()
+        / ordered["exposure"].sum()
+    )
+
+    cumulative_claims = (
+        ordered["actual_claims"].cumsum()
+        / ordered["actual_claims"].sum()
+    )
+
+    # Include the origin of the Lorenz curve.
+    cumulative_exposure = np.concatenate(
+        ([0.0], cumulative_exposure.to_numpy())
+    )
+
+    cumulative_claims = np.concatenate(
+        ([0.0], cumulative_claims.to_numpy())
+    )
+
+    area_under_curve = np.trapezoid(
+        cumulative_claims,
+        cumulative_exposure,
+    )
+
+    return float(1 - 2 * area_under_curve)
+
+
+def normalized_gini(
+    actual_claims: pd.Series,
+    predicted_frequency: pd.Series,
+    exposure: pd.Series,
+) -> float:
+    """Return model Gini divided by the best possible Gini."""
+    model_gini = gini_coefficient(
+        actual_claims=actual_claims,
+        predicted_frequency=predicted_frequency,
+        exposure=exposure,
+    )
+
+    perfect_ranking = (actual_claims / exposure).clip(lower=1e-12)
+
+    perfect_gini = gini_coefficient(
+        actual_claims=actual_claims,
+        predicted_frequency=perfect_ranking,
+        exposure=exposure,
+    )
+
+    if np.isclose(perfect_gini, 0):
+        raise ValueError(
+            "Normalized Gini is undefined when perfect Gini is zero"
+        )
+
+    return float(model_gini / perfect_gini)

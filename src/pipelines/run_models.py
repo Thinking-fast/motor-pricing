@@ -119,6 +119,11 @@ def run_frequency_glm():
     )
 
     logger.info(
+        "Baseline normalized Gini: %.4f",
+        baseline_metrics["normalized_gini"],
+    )
+
+    logger.info(
         "GLM test Poisson deviance: %.6f",
         glm_metrics["poisson_deviance"],
     )
@@ -126,6 +131,11 @@ def run_frequency_glm():
     logger.info(
         "GLM test actual/expected ratio: %.4f",
         glm_metrics["actual_to_expected"],
+    )
+
+    logger.info(
+        "GLM normalized Gini: %.4f",
+        glm_metrics["normalized_gini"],
     )
 
     # GLM coefficient table

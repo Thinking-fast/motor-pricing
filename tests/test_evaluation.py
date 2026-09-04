@@ -5,6 +5,8 @@ from src.models.evaluation import (
     actual_to_expected,
     calibration_by_decile,
     evaluate_frequency_model,
+    gini_coefficient,
+    normalized_gini,
     poisson_deviance,
 )
 
@@ -144,3 +146,50 @@ def test_calibration_by_decile_requires_enough_rows():
             predictions,
             n_deciles=10,
         )
+
+
+def test_constant_prediction_has_zero_gini():
+    actual_claims = pd.Series([0.0, 1.0, 2.0])
+    predicted_frequency = pd.Series([0.1, 0.1, 0.1])
+    exposure = pd.Series([1.0, 1.0, 1.0])
+
+    result = gini_coefficient(
+        actual_claims=actual_claims,
+        predicted_frequency=predicted_frequency,
+        exposure=exposure,
+    )
+
+    assert result == pytest.approx(0.0)
+
+
+def test_perfect_ranking_has_normalized_gini_of_one():
+    actual_claims = pd.Series([0.0, 1.0, 2.0])
+    exposure = pd.Series([1.0, 1.0, 1.0])
+
+    perfect_prediction = actual_claims / exposure
+
+    # The function requires strictly positive predictions. Add a tiny
+    # positive value to the zero-claim policy.
+    perfect_prediction = perfect_prediction.clip(lower=1e-12)
+
+    result = normalized_gini(
+        actual_claims=actual_claims,
+        predicted_frequency=perfect_prediction,
+        exposure=exposure,
+    )
+
+    assert result == pytest.approx(1.0)
+
+
+def test_reversed_ranking_has_negative_normalized_gini():
+    actual_claims = pd.Series([0.0, 1.0, 2.0])
+    predicted_frequency = pd.Series([3.0, 2.0, 1.0])
+    exposure = pd.Series([1.0, 1.0, 1.0])
+
+    result = normalized_gini(
+        actual_claims=actual_claims,
+        predicted_frequency=predicted_frequency,
+        exposure=exposure,
+    )
+
+    assert result < 0

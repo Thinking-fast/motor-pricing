@@ -4,7 +4,9 @@ import pytest
 
 from src.models.glm import (
     fit_frequency_glm,
+    fit_severity_glm,
     predict_frequency_glm,
+    predict_severity_glm,
 )
 
 
@@ -86,3 +88,37 @@ def test_predict_frequency_glm_rejects_nonpositive_exposure():
         match="strictly positive exposure",
     ):
         predict_frequency_glm(model, df)
+
+
+def test_severity_glm_returns_positive_predictions():
+    rng = np.random.default_rng(42)
+    rows = 300
+    claim_rows = rng.integers(0, 4, size=rows)
+    positive_amounts = rng.gamma(shape=2.0, scale=900.0, size=rows)
+    df = pd.DataFrame(
+        {
+            "policy_id": range(rows),
+            "n_claim_rows": claim_rows,
+            "total_claim_amount": np.where(
+                claim_rows > 0,
+                positive_amounts * claim_rows,
+                0,
+            ),
+            "area": rng.choice(["A", "B", "C"], size=rows),
+            "age_band": rng.choice(["25-34", "35-44", "45-54"], size=rows),
+            "veh_brand": rng.choice(["B1", "B2", "B3"], size=rows),
+            "veh_gas": rng.choice(["Diesel", "Regular"], size=rows),
+            "region": rng.choice(["R1", "R2", "R3"], size=rows),
+            "veh_power": rng.integers(4, 10, size=rows),
+            "veh_age": rng.integers(0, 20, size=rows),
+            "bonus_malus": rng.integers(50, 150, size=rows),
+            "density": rng.uniform(10, 1000, size=rows),
+        }
+    )
+
+    model = fit_severity_glm(df)
+    predictions = predict_severity_glm(model, df)
+
+    assert len(predictions) == (claim_rows > 0).sum()
+    assert (predictions["predicted_severity"] > 0).all()
+    assert (predictions["predicted_claim_amount"] > 0).all()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import mean_poisson_deviance
+from sklearn.metrics import mean_gamma_deviance, mean_poisson_deviance
 
 
 def poisson_deviance(
@@ -73,6 +73,74 @@ def evaluate_frequency_model(
         "actual_to_expected": ae_ratio,
         "normalized_gini": gini,
     }
+
+
+def evaluate_severity_model(predictions: pd.DataFrame) -> dict[str, float]:
+    """Return claim-count-weighted Gamma deviance and amount A/E."""
+    required = {
+        "average_claim_amount",
+        "predicted_severity",
+        "n_claim_rows",
+        "total_claim_amount",
+        "predicted_claim_amount",
+    }
+    missing = required - set(predictions.columns)
+    if missing:
+        raise ValueError(f"Missing severity evaluation columns: {sorted(missing)}")
+    if (predictions["average_claim_amount"] <= 0).any():
+        raise ValueError("Actual severity must be strictly positive")
+    if (predictions["predicted_severity"] <= 0).any():
+        raise ValueError("Predicted severity must be strictly positive")
+    if (predictions["n_claim_rows"] <= 0).any():
+        raise ValueError("Claim weights must be strictly positive")
+
+    deviance = mean_gamma_deviance(
+        predictions["average_claim_amount"],
+        predictions["predicted_severity"],
+        sample_weight=predictions["n_claim_rows"],
+    )
+    predicted_total = predictions["predicted_claim_amount"].sum()
+    if predicted_total <= 0:
+        raise ValueError("Total predicted claim amount must be positive")
+
+    return {
+        "gamma_deviance": float(deviance),
+        "actual_to_expected": float(
+            predictions["total_claim_amount"].sum() / predicted_total
+        ),
+    }
+
+
+def severity_calibration_by_decile(
+    predictions: pd.DataFrame,
+    n_deciles: int = 10,
+) -> pd.DataFrame:
+    """Summarize actual and predicted severity by predicted-risk decile."""
+    if n_deciles < 2:
+        raise ValueError("n_deciles must be at least 2")
+    if len(predictions) < n_deciles:
+        raise ValueError("Number of predictions must be at least n_deciles")
+
+    df = predictions.copy()
+    prediction_rank = df["predicted_severity"].rank(method="first")
+    df["decile"] = pd.qcut(prediction_rank, q=n_deciles, labels=False) + 1
+
+    calibration = df.groupby("decile", observed=True).agg(
+        policies=("policy_id", "size"),
+        claims=("n_claim_rows", "sum"),
+        actual_amount=("total_claim_amount", "sum"),
+        predicted_amount=("predicted_claim_amount", "sum"),
+    )
+    calibration["actual_severity"] = (
+        calibration["actual_amount"] / calibration["claims"]
+    )
+    calibration["predicted_severity"] = (
+        calibration["predicted_amount"] / calibration["claims"]
+    )
+    calibration["actual_to_expected"] = (
+        calibration["actual_amount"] / calibration["predicted_amount"]
+    )
+    return calibration.reset_index()
 
 
 def calibration_by_decile(

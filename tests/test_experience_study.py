@@ -78,6 +78,26 @@ def test_experience_study_flags_low_exposure():
     assert bool(result.loc[0, "credible"]) is False
 
 
+def test_experience_study_zero_exposure_returns_nan_rates():
+    """An empty-exposure cell is undefined rather than an exception."""
+    df = pd.DataFrame(
+        {
+            "policy_id": [1],
+            "region": ["A"],
+            "exposure": [0.0],
+            "claim_nb": [0],
+            "n_claim_rows": [0],
+            "total_claim_amount": [0.0],
+        }
+    )
+
+    result = experience_study(df, by="region")
+
+    assert pd.isna(result.loc[0, "frequency"])
+    assert pd.isna(result.loc[0, "severity"])
+    assert pd.isna(result.loc[0, "pure_premium"])
+
+
 def test_experience_study_rejects_unknown_factor():
     df = pd.DataFrame({"region": ["A"]})
 

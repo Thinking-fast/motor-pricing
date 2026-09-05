@@ -48,13 +48,6 @@ python -m streamlit run app/streamlit_app.py
 
 Then open `http://localhost:8501` if a browser does not open automatically.
 
-![alt text](image.png)
-![alt text](image-1.png)
-![alt text](image-2.png)
-![alt text](image-3.png)
-![alt text](image-4.png)
-![alt text](image-5.png)
-
 ## Why it matters
 
 Insurance pricing is more than fitting a model. Policies have different
@@ -66,6 +59,19 @@ This platform connects those actuarial decisions to reproducible engineering:
 SQL extraction, tested data-quality controls, cross-validation, model
 comparison, technical-premium construction, automated reporting and an
 audience-specific dashboard.
+
+### Dashboard preview
+**Executive view — portfolio premium, claims, calibration and management commentary**
+![Executive dashboard showing constructed premium, actual claims, loss ratio, pure-premium calibration and priority cohort](dashboard-executive-summary.png)
+
+**Risk analysis — exposure-weighted frequency and severity by driver age**
+![Risk-analysis dashboard comparing claim frequency and capped severity across driver-age bands](dashboard-experience-analysis.png)
+![alt text](dashboard-experience-analysis-2.png)
+
+**Model performance — held-out comparison of the baseline, Poisson GLM and XGBoost**
+![Model-performance dashboard comparing Poisson deviance and normalized Gini across frequency models](dashboard-model-performance.png)
+![alt text](dashboard-model-performance-2.png)
+![alt text](dashboard-model-performance-3.png)
 
 ## Architecture
 
@@ -187,8 +193,19 @@ test sample is reserved for final evaluation.
 | Poisson GLM | 0.6081 | 0.2526 | 1.0059 |
 | XGBoost | **0.5818** | **0.3311** | 1.0094 |
 
-XGBoost provides the strongest predictive performance and risk ranking. The
-Poisson GLM remains the transparent benchmark and governance challenger.
+XGBoost achieved the strongest discrimination and lowest held-out deviance,
+while its frequency A/E of 1.0094 indicates slight aggregate underprediction.
+This frequency-level calibration result is distinct from the selected combined
+pure-premium model's claim-cost A/E of 0.9930, which indicates close aggregate
+calibration of the final pricing model. The Poisson GLM is retained as a simpler, interpretable benchmark.
+
+Vehicle age, vehicle brand B12, bonus–malus score and fuel type were the most
+important inputs to the XGBoost frequency model, followed by driver age and
+vehicle power. Because the selected pricing approach applies a portfolio-level
+severity and large-loss loading, differences in constructed technical premium
+are driven primarily by predicted claim frequency. Feature importance measures
+model usage rather than causal effect or direction; the accompanying experience
+studies and GLM relativities provide additional directional context.
 
 ### Severity results
 
@@ -199,9 +216,7 @@ Poisson GLM remains the transparent benchmark and governance challenger.
 | Capped | Constant baseline | **1.3709** | 1.0414 |
 | Capped | Gamma GLM | 1.3829 | **1.0391** |
 
-The severity result is deliberately retained: variables that predict whether a
-claim occurs do not necessarily predict its eventual size. The project does
-not force an underperforming model into the selected pricing approach.
+Neither severity model dominates on every metric: the constant baseline achieves lower Gamma deviance, while the Gamma GLM produces A/E closer to 1. Because the GLM did not improve predictive deviance, it was not used in the selected pricing approach.
 
 ### Pure-premium results
 

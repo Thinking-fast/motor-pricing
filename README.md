@@ -354,7 +354,6 @@ The project currently contains **58 tests** and uses:
 - [Data Dictionary](docs/DATA_DICTIONARY.md)
 - [Data Quality Assessment](docs/DATA_QUALITY.md)
 - [Model Validation Report](docs/MODEL_VALIDATION.md)
-- [Build Guide](BUILD_GUIDE.md)
 
 ## Production recommendation
 

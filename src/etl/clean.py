@@ -1,6 +1,6 @@
 """Clean the analysis base table.
 Each function takes a DataFrame and returns a new one, logging how many rows it
-changed. The reasoning behind each decision is in docs/data_quality.md.
+changed. The reasoning behind each decision is in docs/DATA_QUALITY.md.
 """
 
 from __future__ import annotations

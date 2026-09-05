@@ -29,7 +29,7 @@ experience_study:
   driv_age_bands: [18, 25, 35, 45, 55, 65, 75, 101]
   labels: ["18-24", "25-34", "35-44", "45-54", "55-64", "65-74", "75-100"]
   bonus_malus_cap: 150      # cap extreme BonusMalus values during cleaning
-  large_loss_cap: 100000    # cap individual claims for rating; excess pooled portfolio-wide
+  large_loss_cap: 100000    # cap policy-total claims; excess pooled portfolio-wide
 
 model:
   test_size: 0.2

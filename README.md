@@ -48,6 +48,13 @@ python -m streamlit run app/streamlit_app.py
 
 Then open `http://localhost:8501` if a browser does not open automatically.
 
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
+![alt text](image-3.png)
+![alt text](image-4.png)
+![alt text](image-5.png)
+
 ## Why it matters
 
 Insurance pricing is more than fitting a model. Policies have different

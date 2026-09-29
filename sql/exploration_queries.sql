@@ -130,3 +130,15 @@ SELECT
 FROM policies
 GROUP BY region
 ORDER BY pct_of_portfolio DESC;
+
+-- 11. Total amount associated with orphan claims as a proportion of the total claim amount
+SELECT
+    SUM(
+        CASE WHEN p.policy_id IS NULL
+             THEN c.claim_amount
+             ELSE 0
+        END
+    ) / SUM(c.claim_amount) AS orphan_amount_proportion
+FROM claims c
+LEFT JOIN policies p
+    ON p.policy_id = c.policy_id;

@@ -6,10 +6,52 @@ import pytest
 
 from src.analysis.experience_study import (
     add_age_band,
+    add_exposure_balanced_band,
     cap_large_claims,
     experience_study,
     large_loss_loading,
 )
+
+
+def test_add_exposure_balanced_band_creates_balanced_groups():
+    df = pd.DataFrame(
+        {
+            "veh_age": range(1, 9),
+            "exposure": [1.0] * 8,
+        }
+    )
+
+    result = add_exposure_balanced_band(df, "veh_age", n_bands=4)
+
+    exposure_by_band = result.groupby("veh_age_band", observed=True)["exposure"].sum()
+    assert exposure_by_band.tolist() == [2.0, 2.0, 2.0, 2.0]
+    assert "veh_age_band" not in df.columns
+
+
+def test_add_exposure_balanced_band_keeps_tied_values_together():
+    df = pd.DataFrame(
+        {
+            "bonus_malus": [50, 50, 50, 75, 100, 125],
+            "exposure": [1.0] * 6,
+        }
+    )
+
+    result = add_exposure_balanced_band(df, "bonus_malus", n_bands=3)
+
+    groups_per_value = result.groupby("bonus_malus", observed=True)[
+        "bonus_malus_band"
+    ].nunique()
+    assert groups_per_value.max() == 1
+
+
+def test_add_exposure_balanced_band_validates_inputs():
+    df = pd.DataFrame({"veh_age": [1, 2], "exposure": [1.0, 1.0]})
+
+    with pytest.raises(ValueError, match="at least 2"):
+        add_exposure_balanced_band(df, "veh_age", n_bands=1)
+
+    with pytest.raises(ValueError, match="Missing columns"):
+        add_exposure_balanced_band(df, "density")
 
 
 def test_add_age_band_uses_left_inclusive_intervals():

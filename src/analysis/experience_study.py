@@ -4,11 +4,69 @@ from __future__ import annotations
 
 import logging
 
+import numpy as np
 import pandas as pd
 
 from src.config import load_config
 
 logger = logging.getLogger(__name__)
+
+
+def add_exposure_balanced_band(
+    df: pd.DataFrame,
+    column: str,
+    n_bands: int = 8,
+    output_column: str | None = None,
+) -> pd.DataFrame:
+    """Band a numerical variable using exposure-weighted quantile cut points.
+
+    Cut points are placed between observed values, so policies with the same
+    value remain in the same band. Bands can therefore be approximate when a
+    variable contains many tied values.
+    """
+    required = {column, "exposure"}
+    missing = required.difference(df.columns)
+    if missing:
+        raise ValueError(f"Missing columns required for banding: {sorted(missing)}")
+    if n_bands < 2:
+        raise ValueError("n_bands must be at least 2")
+
+    df = df.copy()
+    output_column = output_column or f"{column}_band"
+    valid = df[column].notna() & df["exposure"].notna() & (df["exposure"] > 0)
+    value_exposure = (
+        df.loc[valid, [column, "exposure"]]
+        .groupby(column, observed=True)["exposure"]
+        .sum()
+        .sort_index()
+    )
+
+    if value_exposure.empty:
+        raise ValueError(f"No positive exposure is available to band {column}")
+
+    values = value_exposure.index.to_numpy(dtype=float)
+    cumulative_exposure = value_exposure.cumsum().to_numpy(dtype=float)
+    total_exposure = cumulative_exposure[-1]
+    cut_points = []
+
+    for quantile in np.arange(1, n_bands) / n_bands:
+        index = int(np.searchsorted(cumulative_exposure, quantile * total_exposure))
+        if index >= len(values) - 1:
+            continue
+        cut_points.append((values[index] + values[index + 1]) / 2)
+
+    edges = [-np.inf, *sorted(set(cut_points)), np.inf]
+    df[output_column] = pd.cut(df[column], bins=edges, right=False)
+
+    n_missing = int(df[output_column].isna().sum())
+    logger.info(
+        "add_exposure_balanced_band: column=%s, bands=%d, missing=%d",
+        column,
+        len(edges) - 1,
+        n_missing,
+    )
+
+    return df
 
 
 def add_age_band(df: pd.DataFrame, bins=None, labels=None) -> pd.DataFrame:

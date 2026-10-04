@@ -103,6 +103,20 @@ exposures are currently present.
 - **Residual limitation:** The threshold is a pragmatic screening rule, not a
   formal credibility-theory estimate.
 
+### Numerical rating-factor bands
+
+- **Finding:** Vehicle age, vehicle power, BonusMalus and density can have
+  nonlinear or highly skewed relationships with claim outcomes.
+- **Risk:** Treating them as unexamined linear model terms can conceal
+  thresholds, outliers and misspecification.
+- **Treatment:** Construct approximately exposure-balanced bands from weighted
+  quantile cut points and produce gross and capped one-way experience studies.
+  Equal observed values are never split across bands.
+- **Residual limitation:** Heavy ties, especially in discrete vehicle-power
+  levels, prevent perfectly equal exposure and can produce fewer than the
+  requested eight bands. These studies are diagnostic and do not by themselves
+  establish causal rating effects.
+
 ## Controls and reconciliation
 
 - Every cleaning function follows copy → count → change → log → return.
@@ -113,7 +127,8 @@ exposures are currently present.
   large-loss excess loading.
 - All configurable thresholds are held in `config.yaml`.
 - Unit tests cover exposure and bonus-malus caps, row removal, category
-  normalisation, mismatch flags, large-loss capping and decomposition.
+  normalisation, mismatch flags, exposure-weighted banding, large-loss capping
+  and decomposition.
 
 ## Use limitation
 

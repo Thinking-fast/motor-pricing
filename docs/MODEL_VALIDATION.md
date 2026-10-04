@@ -59,6 +59,13 @@ are one-hot represented through formula terms; density enters as
 GLM coefficients can be exponentiated into multiplicative relativities, making
 the model suitable for transparent challenge and actuarial interpretation.
 
+Before interpreting the numerical terms, one-way studies group vehicle age,
+vehicle power, BonusMalus and density into approximately exposure-balanced
+bands. Their frequency, severity and pure-premium patterns provide an empirical
+check for nonlinearity, influential tails and the suitability of the GLM's
+linear terms. Density is reviewed on this basis alongside its modelled
+`log(1 + density)` transformation.
+
 ### XGBoost
 
 XGBoost predicts annual frequency using a Poisson objective. Policy exposure is

@@ -22,6 +22,13 @@ RISK_FACTORS = {
     "Area": "area",
 }
 
+NUMERICAL_RISK_FACTORS = {
+    "Vehicle age": "veh_age_band",
+    "Vehicle power": "veh_power_band",
+    "BonusMalus": "bonus_malus_band",
+    "Population density": "density_band",
+}
+
 MODEL_LABELS = {
     "constant_baseline": "Constant baseline",
     "poisson_glm": "Poisson GLM",
@@ -193,6 +200,60 @@ def render_risk_view() -> None:
     )
     with st.expander("View underlying experience table"):
         st.dataframe(experience, width="stretch", hide_index=True)
+
+    st.divider()
+    st.subheader("Numerical-factor diagnostics")
+    st.write(
+        "Numerical variables are grouped into approximately exposure-balanced "
+        "bands to reveal nonlinear patterns without creating sparse cells."
+    )
+    numerical_label = st.selectbox(
+        "Numerical rating factor",
+        options=list(NUMERICAL_RISK_FACTORS),
+    )
+    numerical_factor = NUMERICAL_RISK_FACTORS[numerical_label]
+    numerical_experience = load_csv(
+        f"experience_{numerical_factor}{experience_suffix}.csv"
+    )
+    numerical_experience[numerical_factor] = numerical_experience[
+        numerical_factor
+    ].astype(str)
+
+    numerical_frequency_chart = px.line(
+        numerical_experience,
+        x=numerical_factor,
+        y="frequency",
+        markers=True,
+        title=f"Frequency by {numerical_label.lower()} band",
+        labels={
+            numerical_factor: numerical_label,
+            "frequency": "Claims per policy-year",
+        },
+    )
+    numerical_premium_chart = px.line(
+        numerical_experience,
+        x=numerical_factor,
+        y="pure_premium",
+        markers=True,
+        title=f"Pure premium by {numerical_label.lower()} band",
+        labels={
+            numerical_factor: numerical_label,
+            "pure_premium": "Claim cost per policy-year",
+        },
+    )
+    numerical_frequency_chart.update_xaxes(type="category")
+    numerical_premium_chart.update_xaxes(type="category")
+    numerical_frequency_chart.update_yaxes(tickformat=".3f")
+    numerical_premium_chart.update_yaxes(tickprefix="€", separatethousands=True)
+    numerical_column1, numerical_column2 = st.columns(2)
+    numerical_column1.plotly_chart(numerical_frequency_chart, width="stretch")
+    numerical_column2.plotly_chart(numerical_premium_chart, width="stretch")
+    st.caption(
+        "Band boundaries are derived from cumulative exposure; tied values remain "
+        "in the same band."
+    )
+    with st.expander("View numerical experience table"):
+        st.dataframe(numerical_experience, width="stretch", hide_index=True)
 
 
 def render_model_view() -> None:

@@ -10,6 +10,7 @@ from src.etl.clean import clean_base_table
 from src.etl.extract import extract_base_table
 from src.analysis.experience_study import (
     add_age_band,
+    add_exposure_balanced_band,
     cap_large_claims,
     experience_study,
     large_loss_loading,
@@ -18,7 +19,7 @@ from src.analysis.experience_study import (
 logger = logging.getLogger(__name__)
 
 
-FACTORS = [
+CATEGORICAL_FACTORS = [
     "age_band",
     "region",
     "veh_brand",
@@ -40,7 +41,22 @@ def run_experience_studies() -> dict:
     # 3. Add the driver-age bands.
     base = add_age_band(base)
 
-    # 4. Cap losses
+    # 4. Add exposure-balanced bands for numerical rating factors.
+    numerical_bands = config["experience_study"]["numerical_bands"]
+    numerical_factors = []
+    for column, n_bands in numerical_bands.items():
+        band_column = f"{column}_band"
+        base = add_exposure_balanced_band(
+            base,
+            column=column,
+            n_bands=n_bands,
+            output_column=band_column,
+        )
+        numerical_factors.append(band_column)
+
+    factors = CATEGORICAL_FACTORS + numerical_factors
+
+    # 5. Cap losses.
     large_loss_cap = config["experience_study"]["large_loss_cap"]
 
     capped_base, total_excess = cap_large_claims(
@@ -68,13 +84,13 @@ def run_experience_studies() -> dict:
     if abs(gross_portfolio_rate - (capped_portfolio_rate + loading)) > 0.01:
         raise ValueError("Large-loss loading reconciliation failed")
 
-    # 5. Find the processed-data directory.
+    # 6. Find the processed-data directory.
     output_directory = Path(config["paths"]["processed_data"])
 
-    # 6. Create every experience table.
+    # 7. Create every experience table.
     tables = {}
 
-    for factor in FACTORS:
+    for factor in factors:
         gross_table = experience_study(base, by=factor)
         capped_table = experience_study(capped_base, by=factor)
 

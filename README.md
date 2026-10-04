@@ -105,8 +105,11 @@ python run_pipeline.py
 ### Experience study
 
 One-way analyses are produced for driver-age band, region, vehicle brand,
-vehicle fuel type and area. Metrics are calculated after aggregating their
-numerators and denominators:
+vehicle fuel type and area. Numerical studies also cover vehicle age, vehicle
+power, BonusMalus and population density. These variables are grouped using
+exposure-weighted quantile cut points; tied values remain together, so the
+resulting cells are approximately rather than mechanically exposure balanced.
+Metrics are calculated after aggregating their numerators and denominators:
 
 ```text
 frequency    = total reported claim incidents / total exposure
@@ -117,6 +120,11 @@ pure premium = total claim amount / total exposure
 This exposure-weighted approach avoids the classic error of averaging
 policy-level ratios. Segments below 1,000 policy-years are flagged as not
 credible rather than silently removed.
+
+The numerical studies provide a directional check on nonlinearities and
+outliers. In particular, they support challenging the GLM's linear terms,
+assessing the `log(1 + density)` transformation and identifying candidates for
+splines, alternative bands or interactions.
 
 ### Frequency modelling
 
@@ -361,7 +369,7 @@ flake8 run_pipeline.py src app tests --max-line-length=100 --extend-ignore=E203,
 pytest -q
 ```
 
-The project currently contains **58 tests** and uses:
+The project currently contains **61 tests** and uses:
 
 - A central configuration file
 - One reproducible random seed

@@ -54,6 +54,28 @@ def fit_frequency_glm(train: pd.DataFrame):
     return result
 
 
+def poisson_dispersion_diagnostic(model) -> dict[str, float]:
+    """Calculate Pearson dispersion for a fitted Poisson GLM.
+
+    A value near one is consistent with the Poisson mean-variance assumption;
+    a materially larger value indicates overdispersion.
+    """
+    residual_df = float(model.df_resid)
+    pearson_chi2 = float(model.pearson_chi2)
+    if residual_df <= 0:
+        raise ValueError(
+            "Poisson dispersion requires positive residual degrees of freedom"
+        )
+    if not np.isfinite(pearson_chi2):
+        raise ValueError("Poisson dispersion requires a finite Pearson chi-square")
+
+    return {
+        "pearson_chi2": pearson_chi2,
+        "residual_degrees_of_freedom": residual_df,
+        "pearson_dispersion": pearson_chi2 / residual_df,
+    }
+
+
 def predict_frequency_glm(
     model,
     df: pd.DataFrame,

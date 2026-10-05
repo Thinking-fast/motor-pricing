@@ -126,6 +126,9 @@ exposures are currently present.
 - Gross portfolio cost reconciles to capped portfolio cost plus the calculated
   large-loss excess loading.
 - All configurable thresholds are held in `config.yaml`.
+- Poisson mean-variance fit is checked using Pearson dispersion on the training
+  sample; dispersion-adjusted coefficient uncertainty is exported when the
+  statistic exceeds one.
 - Unit tests cover exposure and bonus-malus caps, row removal, category
   normalisation, mismatch flags, exposure-weighted banding, large-loss capping
   and decomposition.

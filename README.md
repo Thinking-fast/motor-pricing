@@ -138,6 +138,13 @@ The offset makes the model estimate an annual claim rate while respecting each
 policy's observed exposure. Exponentiated coefficients provide interpretable
 rating relativities.
 
+The training-sample Pearson dispersion statistic is **2.595**, providing clear
+evidence that claim-count variance exceeds the Poisson assumption. Predictions
+and held-out validation remain useful, but unadjusted Poisson standard errors
+would be too small. The exported coefficient table therefore includes
+dispersion-adjusted standard errors and 95% relativity intervals. A Negative
+Binomial specification is a sensible future inferential benchmark.
+
 XGBoost predicts annual frequency with a Poisson objective and policy exposure
 as the sample weight. Categorical encoding is fitted inside a scikit-learn
 pipeline to avoid preprocessing leakage.
@@ -369,7 +376,7 @@ flake8 run_pipeline.py src app tests --max-line-length=100 --extend-ignore=E203,
 pytest -q
 ```
 
-The project currently contains **61 tests** and uses:
+The project currently contains **63 tests** and uses:
 
 - A central configuration file
 - One reproducible random seed

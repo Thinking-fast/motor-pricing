@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -5,9 +7,29 @@ import pytest
 from src.models.glm import (
     fit_frequency_glm,
     fit_severity_glm,
+    poisson_dispersion_diagnostic,
     predict_frequency_glm,
     predict_severity_glm,
 )
+
+
+def test_poisson_dispersion_diagnostic_uses_pearson_chi_square():
+    model = SimpleNamespace(pearson_chi2=120.0, df_resid=100.0)
+
+    result = poisson_dispersion_diagnostic(model)
+
+    assert result == {
+        "pearson_chi2": 120.0,
+        "residual_degrees_of_freedom": 100.0,
+        "pearson_dispersion": 1.2,
+    }
+
+
+def test_poisson_dispersion_diagnostic_requires_residual_degrees_of_freedom():
+    model = SimpleNamespace(pearson_chi2=10.0, df_resid=0.0)
+
+    with pytest.raises(ValueError, match="positive residual"):
+        poisson_dispersion_diagnostic(model)
 
 
 class DummyFrequencyModel:

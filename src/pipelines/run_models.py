@@ -27,6 +27,7 @@ from src.models.evaluation import (
 from src.models.glm import (
     fit_frequency_glm,
     fit_severity_glm,
+    poisson_dispersion_diagnostic,
     predict_frequency_glm,
     predict_severity_glm,
 )
@@ -160,6 +161,7 @@ def run_frequency_models():
 
     # Poisson GLM
     glm_model = fit_frequency_glm(train)
+    glm_diagnostics = poisson_dispersion_diagnostic(glm_model)
 
     glm_predictions = predict_frequency_glm(
         glm_model,
@@ -344,6 +346,17 @@ def run_frequency_models():
     )
 
     glm_coefficients["relativity"] = np.exp(glm_coefficients["coefficient"])
+    glm_coefficients["standard_error"] = glm_model.bse.values
+    glm_coefficients["dispersion_adjusted_standard_error"] = glm_coefficients[
+        "standard_error"
+    ] * np.sqrt(glm_diagnostics["pearson_dispersion"])
+    adjusted_margin = 1.96 * glm_coefficients["dispersion_adjusted_standard_error"]
+    glm_coefficients["adjusted_relativity_lower_95"] = np.exp(
+        glm_coefficients["coefficient"] - adjusted_margin
+    )
+    glm_coefficients["adjusted_relativity_upper_95"] = np.exp(
+        glm_coefficients["coefficient"] + adjusted_margin
+    )
 
     # XGBoost feature importance
     xgb_importance = xgboost_feature_importance(xgb_model)
@@ -384,6 +397,13 @@ def run_frequency_models():
     )
 
     logger.info(
+        "GLM Pearson dispersion: %.4f (Pearson chi-square=%.2f, residual df=%.0f)",
+        glm_diagnostics["pearson_dispersion"],
+        glm_diagnostics["pearson_chi2"],
+        glm_diagnostics["residual_degrees_of_freedom"],
+    )
+
+    logger.info(
         "XGBoost: deviance=%.6f, A/E=%.4f, Gini=%.4f",
         xgb_metrics["poisson_deviance"],
         xgb_metrics["actual_to_expected"],
@@ -402,6 +422,8 @@ def run_frequency_models():
     cv_summary_path = output_directory / "frequency_cross_validation_summary.csv"
 
     glm_coefficients_path = output_directory / "frequency_glm_coefficients.csv"
+
+    glm_diagnostics_path = output_directory / "frequency_glm_diagnostics.csv"
 
     glm_calibration_path = output_directory / "frequency_glm_calibration.csv"
 
@@ -439,6 +461,8 @@ def run_frequency_models():
         glm_coefficients_path,
         index=False,
     )
+
+    pd.DataFrame([glm_diagnostics]).to_csv(glm_diagnostics_path, index=False)
 
     glm_calibration.to_csv(
         glm_calibration_path,
@@ -577,6 +601,7 @@ def run_frequency_models():
 
     return {
         "glm_model": glm_model,
+        "glm_diagnostics": glm_diagnostics,
         "xgboost_model": xgb_model,
         "glm_predictions": glm_predictions,
         "xgboost_predictions": xgb_predictions,

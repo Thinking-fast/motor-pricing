@@ -59,6 +59,24 @@ are one-hot represented through formula terms; density enters as
 GLM coefficients can be exponentiated into multiplicative relativities, making
 the model suitable for transparent challenge and actuarial interpretation.
 
+### Poisson dispersion
+
+The training-sample Pearson dispersion diagnostic is:
+
+```text
+Pearson chi-square / residual degrees of freedom
+= 1,407,415.22 / 542,362
+= 2.595
+```
+
+This is material overdispersion: conditional claim-count variance is greater
+than the equality of mean and variance assumed by Poisson inference. It does
+not by itself invalidate the GLM's fitted mean or the held-out predictive
+metrics, but conventional Poisson standard errors and confidence intervals are
+likely understated. The coefficient export therefore reports standard errors
+inflated by `sqrt(2.595)` and corresponding 95% relativity intervals. A
+Negative Binomial GLM would be an appropriate future sensitivity comparison.
+
 Before interpreting the numerical terms, one-way studies group vehicle age,
 vehicle power, BonusMalus and density into approximately exposure-balanced
 bands. Their frequency, severity and pure-premium patterns provide an empirical

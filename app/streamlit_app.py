@@ -279,6 +279,16 @@ def render_model_view() -> None:
     )
     metric3.metric("Normalized Gini", f"{selected['normalized_gini']:.4f}")
 
+    glm_diagnostics = load_csv("frequency_glm_diagnostics.csv").iloc[0]
+    st.metric(
+        "Poisson GLM Pearson dispersion",
+        f"{glm_diagnostics['pearson_dispersion']:.3f}",
+        help=(
+            "Pearson chi-square divided by residual degrees of freedom on the "
+            "training sample. Values materially above one indicate overdispersion."
+        ),
+    )
+
     left, right = st.columns(2)
     deviance_chart = px.bar(
         frequency,
